@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Inventory Manager</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji"; }
+    body { margin: 24px; }
+    h1 { margin: 0 0 12px; }
+    form.add { display: grid; grid-template-columns: repeat(5, minmax(120px, 1fr)) 120px; gap: 8px; align-items: end; margin-bottom: 16px; }
+    form.add input { padding: 8px; }
+    form.add button { padding: 10px 12px; }
+    .controls { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border-bottom: 1px solid #ddd; padding: 8px; text-align: left; }
+    tr:hover { background: #fafafa; }
+    .row-actions { display: flex; gap: 6px; }
+    button, input[type="submit"] { cursor: pointer; }
+    .pill { display:inline-block; padding: 2px 8px; border-radius: 999px; background: #eee; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <h1>Inventory</h1>
+
+  <!-- Add Product -->
+  <form class="add" id="addForm">
+    <div>
+      <label for="name">Name</label><br />
+      <input id="name" name="name" required placeholder="e.g., AA Batteries" />
+    </div>
+    <div>
+      <label for="category">Category</label><br />
+      <input id="category" name="category" placeholder="e.g., Electronics" />
+    </div>
+    <div>
+      <label for="stock">Stock</label><br />
+      <input id="stock" name="stock" type="number" min="0" step="1" value="0" />
+    </div>
+    <div>
+      <label for="price">Price</label><br />
+      <input id="price" name="price" type="number" min="0" step="0.01" value="0" />
+    </div>
+    <div>
+      <label for="search">Search</label><br />
+      <input id="search" name="search" placeholder="Filter by name/category…" />
+    </div>
+    <div>
+      <button type="submit">Add</button>
+    </div>
+  </form>
+
+  <div class="controls">
+    <label>Category:
+      <input id="filterCategory" placeholder="All" />
+    </label>
+    <label>Min Stock:
+      <input id="minStock" type="number" min="0" step="1" />
+    </label>
+    <label>Max Stock:
+      <input id="maxStock" type="number" min="0" step="1" />
+    </label>
+    <button id="applyFilters">Apply Filters</button>
+    <button id="clearFilters" type="button">Clear</button>
+  </div>
+
+  <table id="productsTable" aria-live="polite">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Category</th>
+        <th style="width: 140px;">Stock</th>
+        <th style="width: 140px;">Price</th>
+        <th style="width: 240px;">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="productsBody"></tbody>
+  </table>
+
+  <template id="rowTemplate">
+    <tr>
+      <td class="name"></td>
+      <td class="category"></td>
+      <td class="stock"></td>
+      <td class="price"></td>
+      <td class="row-actions"></td>
+    </tr>
+  </template>
+
+  <script>
+    const API = "/api/products";
+
+    const addForm = document.getElementById("addForm");
+    const productsBody = document.getElementById("productsBody");
+    const rowTemplate = document.getElementById("rowTemplate");
+    const searchInput = document.getElementById("search");
+    const filterCategory = document.getElementById("filterCategory");
+    const minStock = document.getElementById("minStock");
+    const maxStock = document.getElementById("maxStock");
+    const applyFiltersBtn = document.getElementById("applyFilters");
+    const clearFiltersBtn = document.getElementById("clearFilters");
+
+    function money(n){ return Number(n).toFixed(2); }
+
+    async function fetchProducts() {
+      const params = new URLSearchParams();
+      if (searchInput.value) params.set("q", searchInput.value);
+      if (filterCategory.value) params.set("category", filterCategory.value);
+      if (minStock.value) params.set("minStock", minStock.value);
+      if (maxStock.value) params.set("maxStock", maxStock.value);
+      const res = await fetch(`${API}?${params.toString()}`);
+      if (!res.ok) {
+        alert("Failed to load products");
+        return [];
+      }
+      return res.json();
+    }
+
+    function render(products) {
+      productsBody.innerHTML = "";
+      for (const p of products) {
+        const row = rowTemplate.content.firstElementChild.cloneNode(true);
+        row.dataset.id = p._id;
+
+        row.querySelector(".name").textContent = p.name;
+        row.querySelector(".category").innerHTML = p.category ? `<span class="pill">${p.category}</span>` : "";
+        row.querySelector(".stock").textContent = p.stock ?? 0;
+        row.querySelector(".price").textContent = "€ " + money(p.price ?? 0);
+
+        const actions = row.querySelector(".row-actions");
+
+        const incBtn = document.createElement("button");
+        incBtn.textContent = "+1";
+        incBtn.title = "Increase stock";
+        incBtn.onclick = () => adjustStock(p._id, +1);
+
+        const decBtn = document.createElement("button");
+        decBtn.textContent = "-1";
+        decBtn.title = "Decrease stock (not below 0)";
+        decBtn.onclick = () => adjustStock(p._id, -1);
+
+        const editBtn = document.createElement("button");
+        editBtn.textContent = "Edit";
+        editBtn.onclick = () => editProduct(p);
+
+        const delBtn = document.createElement("button");
+        delBtn.textContent = "Delete";
+        delBtn.style.color = "crimson";
+        delBtn.onclick = () => deleteProduct(p._id);
+
+        actions.append(incBtn, decBtn, editBtn, delBtn);
+        productsBody.appendChild(row);
+      }
+    }
+
+    async function load() {
+      const items = await fetchProducts();
+      render(items);
+    }
+
+    addForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const form = new FormData(addForm);
+      const payload = {
+        name: form.get("name"),
+        category: form.get("category") || undefined,
+        stock: form.get("stock") ? Number(form.get("stock")) : undefined,
+        price: form.get("price") ? Number(form.get("price")) : undefined,
+      };
+      const res = await fetch(API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert("Failed to add product" + (err.error ? `: ${err.error}` : ""));
+        return;
+      }
+      addForm.reset();
+      await load();
+    });
+
+    async function adjustStock(id, delta) {
+      const res = await fetch(`${API}/${id}/stock`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ delta }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert("Failed to update stock" + (err.error ? `: ${err.error}` : ""));
+        return;
+      }
+      await load();
+    }
+
+    async function deleteProduct(id) {
+      if (!confirm("Delete this product?")) return;
+      const res = await fetch(`${API}/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert("Failed to delete" + (err.error ? `: ${err.error}` : ""));
+        return;
+      }
+      await load();
+    }
+
+    async function editProduct(p) {
+      const name = prompt("Name:", p.name);
+      if (name === null) return;
+      const category = prompt("Category:", p.category || "");
+      if (category === null) return;
+      const stockStr = prompt("Stock (integer ≥ 0):", String(p.stock ?? 0));
+      if (stockStr === null) return;
+      const priceStr = prompt("Price (≥ 0):", String(p.price ?? 0));
+      if (priceStr === null) return;
+
+      const stock = Math.max(0, Math.floor(Number(stockStr)));
+      const price = Math.max(0, Number(priceStr));
+      if (!Number.isFinite(stock) || !Number.isFinite(price)) {
+        alert("Invalid numbers");
+        return;
+      }
+
+      const res = await fetch(`${API}/${p._id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, category, stock, price }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert("Failed to update" + (err.error ? `: ${err.error}` : ""));
+        return;
+      }
+      await load();
+    }
+
+    applyFiltersBtn.addEventListener("click", load);
+    clearFiltersBtn.addEventListener("click", () => {
+      searchInput.value = "";
+      filterCategory.value = "";
+      minStock.value = "";
+      maxStock.value = "";
+      load();
+    });
+    searchInput.addEventListener("input", () => {
+      // lightweight debounce
+      if (searchInput._t) clearTimeout(searchInput._t);
+      searchInput._t = setTimeout(load, 300);
+    });
+
+    load();
+  </script>
+</body>
+</html>
