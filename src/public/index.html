@@ -1,256 +1,326 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <title>Inventory Manager</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji"; }
-    body { margin: 24px; }
-    h1 { margin: 0 0 12px; }
-    form.add { display: grid; grid-template-columns: repeat(5, minmax(120px, 1fr)) 120px; gap: 8px; align-items: end; margin-bottom: 16px; }
-    form.add input { padding: 8px; }
-    form.add button { padding: 10px 12px; }
-    .controls { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
-    table { border-collapse: collapse; width: 100%; }
-    th, td { border-bottom: 1px solid #ddd; padding: 8px; text-align: left; }
-    tr:hover { background: #fafafa; }
-    .row-actions { display: flex; gap: 6px; }
-    button, input[type="submit"] { cursor: pointer; }
-    .pill { display:inline-block; padding: 2px 8px; border-radius: 999px; background: #eee; font-size: 12px; }
-  </style>
-</head>
-<body>
-  <h1>Inventory</h1>
-
-  <!-- Add Product -->
-  <form class="add" id="addForm">
-    <div>
-      <label for="name">Name</label><br />
-      <input id="name" name="name" required placeholder="e.g., AA Batteries" />
+  <head>
+    <meta charset="utf-8" />
+    <title>Inventory Manager</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-50 text-gray-900 p-6">
+    <h1 class="text-3xl font-bold mb-6">Inventory</h1>
+    <!-- Add Product -->
+    <form
+      id="addForm"
+      class="grid grid-cols-1 sm:grid-cols-6 gap-4 mb-6 items-end"
+    >
+      <div>
+        <label for="name" class="block text-sm font-medium text-gray-700"
+          >Name</label
+        >
+        <input
+          id="name"
+          name="name"
+          required
+          placeholder="e.g., AA Batteries"
+          class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+        />
+      </div>
+      <div>
+        <label for="category" class="block text-sm font-medium text-gray-700"
+          >Category</label
+        >
+        <input
+          id="category"
+          name="category"
+          placeholder="e.g., Electronics"
+          class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+        />
+      </div>
+      <div>
+        <label for="stock" class="block text-sm font-medium text-gray-700"
+          >Stock</label
+        >
+        <input
+          id="stock"
+          name="stock"
+          type="number"
+          min="0"
+          step="1"
+          value="0"
+          class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+        />
+      </div>
+      <div>
+        <label for="price" class="block text-sm font-medium text-gray-700"
+          >Price</label
+        >
+        <input
+          id="price"
+          name="price"
+          type="number"
+          min="0"
+          step="0.01"
+          value="0"
+          class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+        />
+      </div>
+      <div>
+        <label for="search" class="block text-sm font-medium text-gray-700"
+          >Search</label
+        >
+        <input
+          id="search"
+          name="search"
+          placeholder="Filter by name/category…"
+          class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+        />
+      </div>
+      <div>
+        <button
+          type="submit"
+          class="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition"
+        >
+          Add
+        </button>
+      </div>
+    </form>
+    <!-- Filters -->
+    <div class="flex flex-wrap gap-4 mb-6">
+      <label class="block">
+        <span class="block text-sm font-medium text-gray-700">Category</span>
+        <input
+          id="filterCategory"
+          placeholder="All"
+          class="mt-1 px-3 py-2 border border-gray-300 rounded-md"
+        />
+      </label>
+      <label class="block">
+        <span class="block text-sm font-medium text-gray-700">Min Stock</span>
+        <input
+          id="minStock"
+          type="number"
+          min="0"
+          step="1"
+          class="mt-1 px-3 py-2 border border-gray-300 rounded-md"
+        />
+      </label>
+      <label class="block">
+        <span class="block text-sm font-medium text-gray-700">Max Stock</span>
+        <input
+          id="maxStock"
+          type="number"
+          min="0"
+          step="1"
+          class="mt-1 px-3 py-2 border border-gray-300 rounded-md"
+        />
+      </label>
+      <div class="flex items-end gap-2">
+        <button
+          id="applyFilters"
+          class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md"
+        >
+          Apply Filters
+        </button>
+        <button
+          id="clearFilters"
+          type="button"
+          class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md"
+        >
+          Clear
+        </button>
+      </div>
     </div>
-    <div>
-      <label for="category">Category</label><br />
-      <input id="category" name="category" placeholder="e.g., Electronics" />
+    <!-- Table -->
+    <div class="overflow-x-auto bg-white shadow rounded-lg">
+      <table
+        id="productsTable"
+        class="min-w-full divide-y divide-gray-200"
+        aria-live="polite"
+      >
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">
+              Name
+            </th>
+            <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">
+              Category
+            </th>
+            <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">
+              Stock
+            </th>
+            <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">
+              Price
+            </th>
+            <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">
+              Actions
+            </th>
+          </tr>
+        </thead>
+        <tbody id="productsBody" class="divide-y divide-gray-200"></tbody>
+      </table>
     </div>
-    <div>
-      <label for="stock">Stock</label><br />
-      <input id="stock" name="stock" type="number" min="0" step="1" value="0" />
-    </div>
-    <div>
-      <label for="price">Price</label><br />
-      <input id="price" name="price" type="number" min="0" step="0.01" value="0" />
-    </div>
-    <div>
-      <label for="search">Search</label><br />
-      <input id="search" name="search" placeholder="Filter by name/category…" />
-    </div>
-    <div>
-      <button type="submit">Add</button>
-    </div>
-  </form>
-
-  <div class="controls">
-    <label>Category:
-      <input id="filterCategory" placeholder="All" />
-    </label>
-    <label>Min Stock:
-      <input id="minStock" type="number" min="0" step="1" />
-    </label>
-    <label>Max Stock:
-      <input id="maxStock" type="number" min="0" step="1" />
-    </label>
-    <button id="applyFilters">Apply Filters</button>
-    <button id="clearFilters" type="button">Clear</button>
-  </div>
-
-  <table id="productsTable" aria-live="polite">
-    <thead>
+    <template id="rowTemplate">
       <tr>
-        <th>Name</th>
-        <th>Category</th>
-        <th style="width: 140px;">Stock</th>
-        <th style="width: 140px;">Price</th>
-        <th style="width: 240px;">Actions</th>
+        <td class="px-4 py-2 name"></td>
+        <td class="px-4 py-2 category"></td>
+        <td class="px-4 py-2 stock"></td>
+        <td class="px-4 py-2 price"></td>
+        <td class="px-4 py-2 row-actions flex gap-2 flex-wrap"></td>
       </tr>
-    </thead>
-    <tbody id="productsBody"></tbody>
-  </table>
-
-  <template id="rowTemplate">
-    <tr>
-      <td class="name"></td>
-      <td class="category"></td>
-      <td class="stock"></td>
-      <td class="price"></td>
-      <td class="row-actions"></td>
-    </tr>
-  </template>
-
-  <script>
-    const API = "/api/products";
-
-    const addForm = document.getElementById("addForm");
-    const productsBody = document.getElementById("productsBody");
-    const rowTemplate = document.getElementById("rowTemplate");
-    const searchInput = document.getElementById("search");
-    const filterCategory = document.getElementById("filterCategory");
-    const minStock = document.getElementById("minStock");
-    const maxStock = document.getElementById("maxStock");
-    const applyFiltersBtn = document.getElementById("applyFilters");
-    const clearFiltersBtn = document.getElementById("clearFilters");
-
-    function money(n){ return Number(n).toFixed(2); }
-
-    async function fetchProducts() {
-      const params = new URLSearchParams();
-      if (searchInput.value) params.set("q", searchInput.value);
-      if (filterCategory.value) params.set("category", filterCategory.value);
-      if (minStock.value) params.set("minStock", minStock.value);
-      if (maxStock.value) params.set("maxStock", maxStock.value);
-      const res = await fetch(`${API}?${params.toString()}`);
-      if (!res.ok) {
-        alert("Failed to load products");
-        return [];
+    </template>
+    <script>
+      const API = "/api/products";
+      const addForm = document.getElementById("addForm");
+      const productsBody = document.getElementById("productsBody");
+      const rowTemplate = document.getElementById("rowTemplate");
+      const searchInput = document.getElementById("search");
+      const filterCategory = document.getElementById("filterCategory");
+      const minStock = document.getElementById("minStock");
+      const maxStock = document.getElementById("maxStock");
+      const applyFiltersBtn = document.getElementById("applyFilters");
+      const clearFiltersBtn = document.getElementById("clearFilters");
+      function money(n) {
+        return Number(n).toFixed(2);
       }
-      return res.json();
-    }
-
-    function render(products) {
-      productsBody.innerHTML = "";
-      for (const p of products) {
-        const row = rowTemplate.content.firstElementChild.cloneNode(true);
-        row.dataset.id = p._id;
-
-        row.querySelector(".name").textContent = p.name;
-        row.querySelector(".category").innerHTML = p.category ? `<span class="pill">${p.category}</span>` : "";
-        row.querySelector(".stock").textContent = p.stock ?? 0;
-        row.querySelector(".price").textContent = "€ " + money(p.price ?? 0);
-
-        const actions = row.querySelector(".row-actions");
-
-        const incBtn = document.createElement("button");
-        incBtn.textContent = "+1";
-        incBtn.title = "Increase stock";
-        incBtn.onclick = () => adjustStock(p._id, +1);
-
-        const decBtn = document.createElement("button");
-        decBtn.textContent = "-1";
-        decBtn.title = "Decrease stock (not below 0)";
-        decBtn.onclick = () => adjustStock(p._id, -1);
-
-        const editBtn = document.createElement("button");
-        editBtn.textContent = "Edit";
-        editBtn.onclick = () => editProduct(p);
-
-        const delBtn = document.createElement("button");
-        delBtn.textContent = "Delete";
-        delBtn.style.color = "crimson";
-        delBtn.onclick = () => deleteProduct(p._id);
-
-        actions.append(incBtn, decBtn, editBtn, delBtn);
-        productsBody.appendChild(row);
+      async function fetchProducts() {
+        const params = new URLSearchParams();
+        if (searchInput.value) params.set("q", searchInput.value);
+        if (filterCategory.value) params.set("category", filterCategory.value);
+        if (minStock.value) params.set("minStock", minStock.value);
+        if (maxStock.value) params.set("maxStock", maxStock.value);
+        const res = await fetch(`${API}?${params.toString()}`);
+        if (!res.ok) {
+          alert("Failed to load products");
+          return [];
+        }
+        return res.json();
       }
-    }
-
-    async function load() {
-      const items = await fetchProducts();
-      render(items);
-    }
-
-    addForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const form = new FormData(addForm);
-      const payload = {
-        name: form.get("name"),
-        category: form.get("category") || undefined,
-        stock: form.get("stock") ? Number(form.get("stock")) : undefined,
-        price: form.get("price") ? Number(form.get("price")) : undefined,
-      };
-      const res = await fetch(API, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+      function render(products) {
+        productsBody.innerHTML = "";
+        for (const p of products) {
+          const row = rowTemplate.content.firstElementChild.cloneNode(true);
+          row.dataset.id = p._id;
+          row.querySelector(".name").textContent = p.name;
+          row.querySelector(".category").innerHTML = p.category
+            ? `<span class="inline-block text-xs px-2 py-1 bg-gray-200 rounded-full">${p.category}</span>`
+            : "";
+          row.querySelector(".stock").textContent = p.stock ?? 0;
+          row.querySelector(".price").textContent = "€ " + money(p.price ?? 0);
+          const actions = row.querySelector(".row-actions");
+          const incBtn = document.createElement("button");
+          incBtn.textContent = "+1";
+          incBtn.title = "Increase stock";
+          incBtn.className =
+            "px-2 py-1 bg-green-100 hover:bg-green-200 rounded";
+          incBtn.onclick = () => adjustStock(p._id, +1);
+          const decBtn = document.createElement("button");
+          decBtn.textContent = "-1";
+          decBtn.title = "Decrease stock (not below 0)";
+          decBtn.className =
+            "px-2 py-1 bg-yellow-100 hover:bg-yellow-200 rounded";
+          decBtn.onclick = () => adjustStock(p._id, -1);
+          const editBtn = document.createElement("button");
+          editBtn.textContent = "Edit";
+          editBtn.className = "px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded";
+          editBtn.onclick = () => editProduct(p);
+          const delBtn = document.createElement("button");
+          delBtn.textContent = "Delete";
+          delBtn.className =
+            "px-2 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded";
+          delBtn.onclick = () => deleteProduct(p._id);
+          actions.append(incBtn, decBtn, editBtn, delBtn);
+          productsBody.appendChild(row);
+        }
+      }
+      async function load() {
+        const items = await fetchProducts();
+        render(items);
+      }
+      addForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const form = new FormData(addForm);
+        const payload = {
+          name: form.get("name"),
+          category: form.get("category") || undefined,
+          stock: form.get("stock") ? Number(form.get("stock")) : undefined,
+          price: form.get("price") ? Number(form.get("price")) : undefined,
+        };
+        const res = await fetch(API, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          alert("Failed to add product" + (err.error ? `: ${err.error}` : ""));
+          return;
+        }
+        addForm.reset();
+        await load();
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        alert("Failed to add product" + (err.error ? `: ${err.error}` : ""));
-        return;
+      async function adjustStock(id, delta) {
+        const res = await fetch(`${API}/${id}/stock`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ delta }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          alert("Failed to update stock" + (err.error ? `: ${err.error}` : ""));
+          return;
+        }
+        await load();
       }
-      addForm.reset();
-      await load();
-    });
-
-    async function adjustStock(id, delta) {
-      const res = await fetch(`${API}/${id}/stock`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ delta }),
+      async function deleteProduct(id) {
+        if (!confirm("Delete this product?")) return;
+        const res = await fetch(`${API}/${id}`, { method: "DELETE" });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          alert("Failed to delete" + (err.error ? `: ${err.error}` : ""));
+          return;
+        }
+        await load();
+      }
+      async function editProduct(p) {
+        const name = prompt("Name:", p.name);
+        if (name === null) return;
+        const category = prompt("Category:", p.category || "");
+        if (category === null) return;
+        const stockStr = prompt("Stock (integer ≥ 0):", String(p.stock ?? 0));
+        if (stockStr === null) return;
+        const priceStr = prompt("Price (≥ 0):", String(p.price ?? 0));
+        if (priceStr === null) return;
+        const stock = Math.max(0, Math.floor(Number(stockStr)));
+        const price = Math.max(0, Number(priceStr));
+        if (!Number.isFinite(stock) || !Number.isFinite(price)) {
+          alert("Invalid numbers");
+          return;
+        }
+        const res = await fetch(`${API}/${p._id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, category, stock, price }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          alert("Failed to update" + (err.error ? `: ${err.error}` : ""));
+          return;
+        }
+        await load();
+      }
+      applyFiltersBtn.addEventListener("click", load);
+      clearFiltersBtn.addEventListener("click", () => {
+        searchInput.value = "";
+        filterCategory.value = "";
+        minStock.value = "";
+        maxStock.value = "";
+        load();
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        alert("Failed to update stock" + (err.error ? `: ${err.error}` : ""));
-        return;
-      }
-      await load();
-    }
-
-    async function deleteProduct(id) {
-      if (!confirm("Delete this product?")) return;
-      const res = await fetch(`${API}/${id}`, { method: "DELETE" });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        alert("Failed to delete" + (err.error ? `: ${err.error}` : ""));
-        return;
-      }
-      await load();
-    }
-
-    async function editProduct(p) {
-      const name = prompt("Name:", p.name);
-      if (name === null) return;
-      const category = prompt("Category:", p.category || "");
-      if (category === null) return;
-      const stockStr = prompt("Stock (integer ≥ 0):", String(p.stock ?? 0));
-      if (stockStr === null) return;
-      const priceStr = prompt("Price (≥ 0):", String(p.price ?? 0));
-      if (priceStr === null) return;
-
-      const stock = Math.max(0, Math.floor(Number(stockStr)));
-      const price = Math.max(0, Number(priceStr));
-      if (!Number.isFinite(stock) || !Number.isFinite(price)) {
-        alert("Invalid numbers");
-        return;
-      }
-
-      const res = await fetch(`${API}/${p._id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, category, stock, price }),
+      searchInput.addEventListener("input", () => {
+        if (searchInput._t) clearTimeout(searchInput._t);
+        searchInput._t = setTimeout(load, 300);
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        alert("Failed to update" + (err.error ? `: ${err.error}` : ""));
-        return;
-      }
-      await load();
-    }
-
-    applyFiltersBtn.addEventListener("click", load);
-    clearFiltersBtn.addEventListener("click", () => {
-      searchInput.value = "";
-      filterCategory.value = "";
-      minStock.value = "";
-      maxStock.value = "";
       load();
-    });
-    searchInput.addEventListener("input", () => {
-      // lightweight debounce
-      if (searchInput._t) clearTimeout(searchInput._t);
-      searchInput._t = setTimeout(load, 300);
-    });
-
-    load();
-  </script>
-</body>
+    </script>
+  </body>
 </html>
